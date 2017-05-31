@@ -33,8 +33,15 @@ def usage(name):
     print "     (-f) --frequency    list most frequent open ports from specified DB"
     print "     (-n) --nodb         do not perform any DB operations (i.e. dry run)"
     print "     (-V) --version      output version number and exit"
+    print "\nexample: ./nmapdb.py -v -c nmapdb.sql -d myscan.db scan_data.xml"
 
     return
+
+def dict_factory(cursor, row):
+    d = {}
+    for idx,col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
 
 def main(argv, environ):
     global vflag
@@ -208,8 +215,40 @@ def main(argv, environ):
                             (ip, mac, hostname, protocol, os_name, os_family, os_accuracy,
                             os_gen, timestamp, state, mac_vendor, whois_str))
                 except sqlite.IntegrityError, msg:
-                    print "%s: warning: %s: table hosts: ip: %s\n" % (argv[0], msg, ip)
-                    continue
+                    cursor.execute("SELECT * FROM hosts WHERE ip = '%s'" % ip )
+                    db = dict_factory(cursor, cursor.fetchone())
+                    if not ( db['ip'] == ip and db['mac'] == mac and db['hostname'] == hostname and db['protocol'] == protocol and db['os_name'] == os_name 
+                         and db['os_family'] == os_family and db['os_accuracy'] == int(os_accuracy) and db['os_gen'] == os_gen and db['state'] == state and  
+                         db['mac_vendor'] == mac_vendor and db['whois'] == whois_str):
+                        # So we already have an entry. If theres no new information we continue to ports
+                        # If there's a bunch of new entries we'll ask the user what to do
+                        print "[hosts] %s entry exists" % ip
+                        print "=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+                        print "[hosts] Name: Old --> New"
+                        print("[hosts] ip: "+db['ip']+" --> %s" % ip)
+                        print("[hosts] mac: "+db['mac']+" --> %s" % mac)
+                        print("[hosts] hostname: "+db['hostname']+" --> %s" % hostname)
+                        print("[hosts] protocol: "+db['protocol']+" --> %s" % protocol)
+                        print("[hosts] os_name: "+db['os_name']+" --> %s" % os_name)
+                        print("[hosts] os_family: "+db['os_family']+" --> %s" % os_family)
+                        print("[hosts] os_accuracy: "+str(db['os_accuracy'])+" --> %s" % os_accuracy)
+                        print("[hosts] os_gen: "+db['os_gen']+" --> %s" % os_gen)
+                        print("[hosts] timestamp: "+str(db['last_update'])+" --> %s" % timestamp)
+                        print("[hosts] state: "+db['state']+" --> %s" % state)
+                        print("[hosts] mac_vendor: "+db['mac_vendor']+" --> %s" % mac_vendor)
+                        print("[hosts] whois: "+db['whois']+" --> %s" % whois_str)
+                        print "=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+                        print "[hosts] Update entry? y/n"
+                        user_input = sys.stdin.readline().strip()[:1]
+                        if user_input == 'y':
+                            myprint("[hosts] updating %s entry" % ip)
+                            sql = ("UPDATE hosts SET mac='%s', hostname='%s', protocol='%s', os_name='%s', os_family='%s', os_accuracy='%s', os_gen='%s', last_update='%s', state='%s', mac_vendor='%s', whois='%s' WHERE ip = '%s'" %
+                                            (mac,hostname,protocol,os_name,os_family,os_accuracy,os_gen,timestamp,state,mac_vendor,whois_str, ip ))
+                            cursor.execute(sql)
+
+                        else:
+                            myprint("[hosts] Skipping %s entry" % ip)
+                            continue
                 except:
                     print "%s: unknown exception during insert into table hosts\n" % (argv[0])
                     continue
