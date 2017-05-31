@@ -217,26 +217,31 @@ def main(argv, environ):
                 except sqlite.IntegrityError, msg:
                     cursor.execute("SELECT * FROM hosts WHERE ip = '%s'" % ip )
                     db = dict_factory(cursor, cursor.fetchone())
-                    if not ( db['ip'] == ip and db['mac'] == mac and db['hostname'] == hostname and db['protocol'] == protocol and db['os_name'] == os_name 
-                         and db['os_family'] == os_family and db['os_accuracy'] == int(os_accuracy) and db['os_gen'] == os_gen and db['state'] == state and  
-                         db['mac_vendor'] == mac_vendor and db['whois'] == whois_str):
+                    if not (     db['mac']        == mac 
+                             and db['hostname']   == hostname 
+                             and db['protocol']   == protocol 
+                             and db['os_name']    == os_name 
+                             and db['os_family']  == os_family 
+                             and db['os_gen']     == os_gen 
+                             and db['state']      == state 
+                             and db['mac_vendor'] == mac_vendor 
+                             and db['whois']      == whois_str):
                         # So we already have an entry. If theres no new information we continue to ports
                         # If there's a bunch of new entries we'll ask the user what to do
                         print "[hosts] %s entry exists" % ip
                         print "=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
-                        print "[hosts] Name: Old --> New"
-                        print("[hosts] ip: "+db['ip']+" --> %s" % ip)
-                        print("[hosts] mac: "+db['mac']+" --> %s" % mac)
-                        print("[hosts] hostname: "+db['hostname']+" --> %s" % hostname)
-                        print("[hosts] protocol: "+db['protocol']+" --> %s" % protocol)
-                        print("[hosts] os_name: "+db['os_name']+" --> %s" % os_name)
-                        print("[hosts] os_family: "+db['os_family']+" --> %s" % os_family)
-                        print("[hosts] os_accuracy: "+str(db['os_accuracy'])+" --> %s" % os_accuracy)
-                        print("[hosts] os_gen: "+db['os_gen']+" --> %s" % os_gen)
-                        print("[hosts] timestamp: "+str(db['last_update'])+" --> %s" % timestamp)
-                        print("[hosts] state: "+db['state']+" --> %s" % state)
-                        print("[hosts] mac_vendor: "+db['mac_vendor']+" --> %s" % mac_vendor)
-                        print("[hosts] whois: "+db['whois']+" --> %s" % whois_str)
+                        print "[hosts] Name:        'Old' --> 'New'"
+                        print("[hosts] mac:         '"+db['mac']+"' --> '%s'" % mac)
+                        print("[hosts] hostname:    '"+db['hostname']+"' --> '%s'" % hostname)
+                        print("[hosts] protocol:    '"+db['protocol']+"' --> '%s'" % protocol)
+                        print("[hosts] os_name:     '"+db['os_name']+"' --> '%s'" % os_name)
+                        print("[hosts] os_family:   '"+db['os_family']+"' --> '%s'" % os_family)
+                        print("[hosts] os_accuracy: '"+str(db['os_accuracy'])+"' --> '%s'" % os_accuracy)
+                        print("[hosts] os_gen:      '"+db['os_gen']+"' --> '%s'" % os_gen)
+                        print("[hosts] timestamp:   '"+str(db['last_update'])+"' --> '%s'" % timestamp)
+                        print("[hosts] state:       '"+db['state']+"' --> '%s'" % state)
+                        print("[hosts] mac_vendor:  '"+db['mac_vendor']+" --> '%s'" % mac_vendor)
+                        print("[hosts] whois:       '"+db['whois']+"' --> '%s'" % whois_str)
                         print "=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
                         print "[hosts] Update entry? y/n"
                         user_input = sys.stdin.readline().strip()[:1]
@@ -295,30 +300,52 @@ def main(argv, environ):
                     if script_id != "" and script_output != "":
                         info_str += "%s: %s\n" % (script_id, script_output)
 
-                myprint("\t------------------------------------------------")
+                myprint("------------------------------------------------")
 
-                myprint("\t[ports] ip:\t\t%s" % (ip))
-                myprint("\t[ports] port:\t\t%s" % (pn))
-                myprint("\t[ports] protocol:\t%s" % (protocol))
-                myprint("\t[ports] name:\t\t%s" % (port_name))
-                myprint("\t[ports] state:\t\t%s" % (state))
-                myprint("\t[ports] service:\t%s" % (service_str))
+                myprint("[ports] ip:\t\t%s" % (ip))
+                myprint("[ports] port:\t\t%s" % (pn))
+                myprint("[ports] protocol:\t%s" % (protocol))
+                myprint("[ports] name:\t\t%s" % (port_name))
+                myprint("[ports] state:\t\t%s" % (state))
+                myprint("[ports] service:\t%s" % (service_str))
                 
                 if info_str != "":
-                    myprint("\t[ports] info:\n")
+                    myprint("[ports] info:\n")
                     myprint("%s\n" % (info_str))
 
                 if nodb_flag == false:
                     try:
                         cursor.execute("INSERT INTO ports VALUES (?, ?, ?, ?, ?, ?, ?)", (ip, pn, protocol, port_name, state, service_str, info_str))
                     except sqlite.IntegrityError, msg:
-                        print "%s: warning: %s: table ports: ip: %s\n" % (argv[0], msg, ip)
-                        continue
+                        cursor.execute("SELECT * FROM ports WHERE ip = '%s' AND port = '%s' and protocol ='%s'" % (ip, pn, protocol) )
+                        db = dict_factory(cursor, cursor.fetchone())
+
+                        if info_str != "" and db['info'].find(info_str) <= 0:
+                            new_info = db['info'] + "\n" + info_str
+                            myprint("[ports] Appending info %s" % info_str)
+                            cursor.execute("UPDATE ports SET info=? WHERE ip = ? AND port = ? and protocol =?" , (new_info, ip, pn, protocol))
+                            
+
+                        if db['name'] != port_name or db['service'] != service_str or db['state'] != state:
+                            print '[ports] %s:%s %s exists' % (ip, pn, protocol)
+                            print "=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+                            print "[ports] Name:     'Old' --> 'New'"
+                            print("[ports] ip:       '"+db['ip']+"' --> '%s'" % ip)
+                            print("[ports] port:     '"+str(db['port'])+"' --> '%s'" % pn)
+                            print("[ports] protocol: '"+db['protocol']+"' --> '%s'" % protocol)
+                            print("[ports] name:     '"+db['name']+"' --> '%s'" % port_name)
+                            print("[ports] state:    '"+db['state']+"' --> '%s'" % state)
+                            print("[ports] service:  '"+db['service']+"' --> '%s'" % service_str)
+                            print "=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+                            print "[ports] Update entry? y/n"
+                            user_input = sys.stdin.readline().strip()[:1]
+                            cursor.execute("UPDATE ports SET name=?, state=?, service=? WHERE ip = ? AND port = ? and protocol = ?",
+                                   (port_name, state, service_str, ip, pn, protocol))
+
                     except:
                         print "%s: unknown exception during insert into table ports\n" % (argv[0])
                         continue
 
-                myprint("\t------------------------------------------------")
 
             myprint("================================================================")
 
