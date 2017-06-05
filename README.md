@@ -20,7 +20,7 @@ usage: nmapdb.py [-h] [--debug] [-d SCANDB] nmap_xml
 nmapdb.py: error: too few arguments
 
 $ ./nmapdb.py -h 
-usage: nmapdb.py [-h] [--debug] [-d SCANDB] nmap_xml
+usage: nmapdb.py [-h] [--debug] [--force-update] [-d SCANDB] nmap_xml
 
 Nmap XML file to SQLite database. Default file nmap.db will be used if none is
 supplied.
@@ -31,6 +31,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --debug               Print verbose information
+  --force-update        Overwrite previous information.
   -d SCANDB, --database SCANDB
                         Filename to use for database. If file doesn't exist it
                         will be created. Default is 'nmap.db.'
@@ -100,6 +101,8 @@ $ ./nmapdb.py --debug scanme.xml
 [+] [port] >> state:    open
 [+] [port] >> service:  product: OpenSSH version: 6.6.1p1 Ubuntu 2ubuntu2.8 extrainfo: Ubuntu Linux; protocol 2.0 ostype: Linux
 ```
+
+### Updates
 
 Subsequent scans can be entered into the same database. New script output will be appended to existing script output. If there are conflicts between what is in the database and the XML file you will be prompted to update:
 
