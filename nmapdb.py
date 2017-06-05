@@ -116,6 +116,7 @@ def main(argv, environ):
     #start argument parser
     parser = argparse.ArgumentParser(description='Nmap XML file to SQLite database. Default file nmap.db will be used if none is supplied.')
     parser.add_argument('--debug',help='Print verbose information',default=False,dest='debug',action='store_true')
+    parser.add_argument('--force-update',help='Overwrite previous information.',default=False,dest='force',action='store_true')    
     parser.add_argument('-d','--database',help='Filename to use for database. If file doesn\'t exist it will be created. Default is \'nmap.db.\'',dest='scandb', default='nmap.db')
     parser.add_argument('nmap_xml',help='Nmap XML file you wish to parse')
     args = parser.parse_args()
@@ -228,6 +229,12 @@ def main(argv, environ):
                 debug("[host]"," Appending script output")
                 cursor.execute("UPDATE hosts SET info=? WHERE ip = ?" , (new_info, ip))
 
+            if args.force:
+                    debug("[host]","--force-update enabled - overwritting entry!")
+                    sql = ("UPDATE hosts SET mac='%s', hostname='%s', protocol='%s', os_name='%s', os_family='%s', os_accuracy='%s', os_gen='%s', last_update='%s', state='%s', mac_vendor='%s', info='%s' WHERE ip = '%s'" %
+                    (mac,hostname,protocol,os_name,os_family,os_accuracy,os_gen,timestamp,state,mac_vendor,host_script, ip ))
+                    cursor.execute(sql)
+
             # If the host already exsits lets check with the user if we wan't to update
             if (    db['mac']       != mac 
                 and db['hostname']  != hostname  and db['hostname'] != ''
@@ -237,7 +244,7 @@ def main(argv, environ):
                 and db['os_gen']    != os_gen    and db['os_gen'] != ''
                 and db['state']     != state 
                 and db['mac_vendor']!= mac_vendor 
-                and db['info']      != host_script):
+                and db['info']      != host_script) and not args.force:
                 # So we already have an entry. If theres no new information we continue to ports
                 # If there's a bunch of new entries we'll ask the user what to do
                 debug("[host]","Could not update automatically - Manual update required")
@@ -257,7 +264,7 @@ def main(argv, environ):
                 mesg("[host]","Update entry? y/n")
                 user_input = sys.stdin.readline().strip()[:1]
                 if user_input == 'y':
-                    debug("[hosts]","Updating %s entry" % ip)
+                    debug("[host]","Updating %s entry" % ip)
                     sql = ("UPDATE hosts SET mac='%s', hostname='%s', protocol='%s', os_name='%s', os_family='%s', os_accuracy='%s', os_gen='%s', last_update='%s', state='%s', mac_vendor='%s', info='%s' WHERE ip = '%s'" %
                                     (mac,hostname,protocol,os_name,os_family,os_accuracy,os_gen,timestamp,state,mac_vendor,host_script, ip ))
                     cursor.execute(sql)
@@ -323,12 +330,16 @@ def main(argv, environ):
                 # We automatically append new script output without asking the user
                 if info_str != "" and db['info'].find(info_str) < 0:
                     new_info = db['info'] + "\n" + info_str
-                    debug("[ports]","Appending script output %s" % info_str)
+                    debug("[port]","Appending script output %s" % info_str)
                     cursor.execute("UPDATE ports SET info=? WHERE ip = ? AND port = ? and protocol =?" , (new_info, ip, pn, protocol))
                     
+                if args.force:
+                    debug("[port]","--force-update enabled - overwritting entry!")
+                    cursor.execute("UPDATE ports SET name=?, state=?, service=? WHERE ip = ? AND port = ? and protocol = ?",
+                           (port_name, state, service_str, ip, pn, protocol))
 
-                if (db['name'] != port_name or db['service'] != service_str or db['state'] != state) and service_str != '':
-                    debug("[host]","Could not update automatically - Manual update required")
+                if (not args.force) and (db['name'] != port_name or db['service'] != service_str or db['state'] != state) and service_str != '':
+                    debug("[port]","Could not update automatically - Manual update required")
                     err("[!!!!]","------------------- MANUAL UPDATE REQUIRED! -----------------------")
                     mesg("[port]","%s:%s %s exists" % (ip, pn, protocol))
                     mesg("[port]","Name:     'Old' --> 'New'")
