@@ -231,9 +231,8 @@ def main(argv, environ):
 
             if args.force:
                     debug("[host]","--force-update enabled - overwritting entry!")
-                    sql = ("UPDATE hosts SET mac='%s', hostname='%s', protocol='%s', os_name='%s', os_family='%s', os_accuracy='%s', os_gen='%s', last_update='%s', state='%s', mac_vendor='%s', info='%s' WHERE ip = '%s'" %
-                    (mac,hostname,protocol,os_name,os_family,os_accuracy,os_gen,timestamp,state,mac_vendor,host_script, ip ))
-                    cursor.execute(sql)
+                    cursor.execute("UPDATE hosts SET mac=?, hostname=?, protocol=?, os_name=?, os_family=?, os_accuracy=?, os_gen=?, last_update=?, state=?, mac_vendor=?, info=? WHERE ip = ?", (mac,hostname,protocol,os_name,os_family,os_accuracy,os_gen,timestamp,state,mac_vendor,host_script, ip ))
+
 
             # If the host already exsits lets check with the user if we wan't to update
             if (    db['mac']       != mac 
@@ -265,10 +264,7 @@ def main(argv, environ):
                 user_input = sys.stdin.readline().strip()[:1]
                 if user_input == 'y':
                     debug("[host]","Updating %s entry" % ip)
-                    sql = ("UPDATE hosts SET mac='%s', hostname='%s', protocol='%s', os_name='%s', os_family='%s', os_accuracy='%s', os_gen='%s', last_update='%s', state='%s', mac_vendor='%s', info='%s' WHERE ip = '%s'" %
-                                    (mac,hostname,protocol,os_name,os_family,os_accuracy,os_gen,timestamp,state,mac_vendor,host_script, ip ))
-                    cursor.execute(sql)
-
+                    cursor.execute("UPDATE hosts SET mac=?, hostname=?, protocol=?, os_name=?, os_family=?, os_accuracy=?, os_gen=?, last_update=?, state=?, mac_vendor=?, info=? WHERE ip = ?", (mac,hostname,protocol,os_name,os_family,os_accuracy,os_gen,timestamp,state,mac_vendor,host_script, ip ))
                 else:
                     debug("[hosts]","Skipping %s entry" % ip)
         except:
