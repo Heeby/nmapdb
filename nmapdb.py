@@ -317,7 +317,7 @@ def main(argv, environ):
             debug("[port]","state:    %s" % (state))
             debug("[port]","service:  %s" % (service_str))
             debug("[port]","info:     %s" % (info_str))
-            debug("[host]","Attempting to inserting %s:%s in to database" % (ip,pn))
+            debug("[host]","Attempting to insert %s:%s in to database" % (ip,pn))
 
             try:
                 cursor.execute("INSERT INTO ports VALUES (?, ?, ?, ?, ?, ?, ?)", (ip, pn, protocol, port_name, state, service_str, info_str))
